@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <style>
+    /* Styles remain the same */
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Admin Dashboard</h1>
+    <button onclick="togglePostForm()">New Post</button>
+
+    <!-- Form untuk postingan baru -->
+    <div id="post-form" class="hidden">
+      <textarea id="post-text" placeholder="Write something..." rows="5"></textarea><br>
+      <button onclick="postText()">Post</button>
+    </div>
+
+    <h3>Posted Messages</h3>
+    <!-- Kolom untuk postingan yang dipin -->
+    <div id="pinned-posts" class="post-grid">
+        <h4>Pinned Posts</h4>
+    </div>
+
+    <!-- Kolom untuk postingan yang tidak dipin -->
+    <div id="unpinned-posts" class="post-grid">
+        <h4>Other Posts</h4>
+    </div>
+  </div>
+
+  <!-- Popup Edit -->
+  <div id="popup" class="popup hidden">
+    <div class="popup-content">
+      <h3>Edit Post</h3>
+      <input type="text" id="popup-input" placeholder="Enter new text">
+      <button onclick="saveEdit()">Save</button>
+      <button onclick="closePopup()">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    const postsKey = "posts";
+    let posts = [];
+    let editIndex = null;
+
+    // Load posts from localStorage
+    function loadPosts() {
+      const storedPosts = localStorage.getItem(postsKey);
+      if (storedPosts) {
+        posts = JSON.parse(storedPosts);
+        renderPosts();
+      }
+    }
+
+    // Save posts to localStorage
+    function savePosts() {
+      localStorage.setItem(postsKey, JSON.stringify(posts));
+    }
+
+    // Render posts (pinned and unpinned)
+    function renderPosts() {
+      const pinnedPostsContainer = document.getElementById("pinned-posts");
+      const unpinnedPostsContainer = document.getElementById("unpinned-posts");
+
+      pinnedPostsContainer.innerHTML = "";
+      unpinnedPostsContainer.innerHTML = "";
+
+      posts.sort((a, b) => b.pinned - a.pinned);
+
+      posts.forEach((post, index) => {
+        const postElement = document.createElement("div");
+        postElement.className = "post";
+        postElement.innerHTML = `
+          <p>${post.text} <br><small>(Posted at: ${new Date(post.timestamp).toLocaleString()})</small></p>
+          ${post.pinned ? '<span class="pinned-label">Pinned</span>' : ''}
+          <button onclick="togglePin(${index})">${post.pinned ? "Unpin" : "Pin"}</button>
+          <button class="edit" onclick="openEditPopup(${index})">Edit</button>
+          <button onclick="deletePost(${index})">Delete</button>
+        `;
+
+        if (post.pinned) {
+            pinnedPostsContainer.appendChild(postElement);
+        } else {
+            unpinnedPostsContainer.appendChild(postElement);
+        }
+      });
+    }
+
+    // Toggle pin status
+    function togglePin(index) {
+      posts[index].pinned = !posts[index].pinned;
+      savePosts();
+      renderPosts();
+      updatePinnedPostsOnIndexPage();
+    }
+
+    // Update pinned posts on index.html page
+    function updatePinnedPostsOnIndexPage() {
+      localStorage.setItem(postsKey, JSON.stringify(posts));
+    }
+
+    // Toggle post form visibility
+    function togglePostForm() {
+      const postForm = document.getElementById("post-form");
+      postForm.classList.toggle("hidden");
+    }
+
+    // Create a new post
+    function postText() {
+      const postText = document.getElementById("post-text").value;
+      if (postText.trim() === "") {
+        alert("Text cannot be empty!");
+        return;
+      }
+      posts.push({
+        text: postText,
+        timestamp: new Date().toISOString(),
+        pinned: false // default to not pinned
+      });
+      savePosts();
+      renderPosts();
+      document.getElementById("post-text").value = "";
+      togglePostForm();
+    }
+
+    // Open edit popup
+    function openEditPopup(index) {
+      editIndex = index;
+      document.getElementById("popup-input").value = posts[index].text;
+      document.getElementById("popup").classList.remove("hidden");
+    }
+
+    // Save edited post
+    function saveEdit() {
+      const newText = document.getElementById("popup-input").value;
+      if (newText.trim() === "") {
+        alert("Text cannot be empty!");
+        return;
+      }
+      posts[editIndex].text = newText;
+      savePosts();
+      renderPosts();
+      closePopup();
+    }
+
+    // Close edit popup
+    function closePopup() {
+      document.getElementById("popup").classList.add("hidden");
+    }
+
+    // Delete post
+    function deletePost(index) {
+      posts.splice(index, 1);
+      savePosts();
+      renderPosts();
+    }
+
+    // Load posts on page load
+    loadPosts();
+  </script>
+</body>
+</html>
